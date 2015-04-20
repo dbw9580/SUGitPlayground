@@ -1,0 +1,153 @@
+用户界面接口
+功能模块
+	UIS认证登陆
+	进行预约操作
+	显示预约情况
+	显示系统通知
+
+	
+返回数据封装格式
+	数据使用JSON格式封装
+	返回数据样例见json_return.json
+	
+接口定义
+	获得当前用户信息
+		方法: post
+		URL: program/user.php
+		POST参数
+			type:"getMe"
+			param:null
+		返回字段
+			username
+				string
+				用户姓名；utf-8编码
+			uid
+				int
+				用户uis号码；
+	获得当前用户的预约情况
+		方法: post
+		URL: program/service.php
+		POST参数
+			type: "getMy"
+			param: null
+		返回字段
+			serviceId
+				int
+				预约的编号
+			time
+				start
+					string
+					开始时间；格式：unix时间戳
+				end
+					string
+					结束时间；格式：unix时间戳
+			target
+				string
+				哪一台钢琴；格式：A或B
+			contact
+				string
+				联系方式，一般为手机号码；无固定格式
+	获得当前开放的预约情况
+		方法：post
+		URL: program/service.php
+		POST参数
+			type: "getOpen"
+			param
+				(null)
+		返回字段
+			data
+				array
+				元素为预约信息的对象，包含
+					serviceId
+						int
+						预约编号；这个字段对于非管理员用户的查询始终返回0，对于管理员用户则返回真实值
+					target
+						string
+						哪一台钢琴；格式：A或B
+					time
+						start
+							string
+							开始时间；格式：unix时间戳
+						end
+							string
+							结束时间；格式：unix时间戳
+					username
+						string
+						预约人姓名（的最后一个字）
+					uid
+						int
+						预约人学号（的最后五位）
+	获得全局的系统通知（未完全定义）
+		方法：post
+		URL：program/info.php
+		POST参数
+			type: "getInfo"
+			param: null
+		返回字段
+			data
+				array
+				（未定义）
+	用户登录
+		方法：post
+		URL: program/user.php
+		POST参数
+			type: "login"
+			param
+				uid
+					string
+					用户UIS学号；
+				password
+					string
+					密码，UIS密码；
+		返回字段
+			username
+				string
+				用户姓名；utf-8编码
+			uid
+				int
+				用户uis号码；
+	用户注销
+		方法：post
+		URL: program/user.php
+		POST参数
+			type: "logout"
+			param: null
+		返回字段
+			(null)
+	新建预约
+		方法：post
+		URL: program/service.php
+		POST参数
+			type: "order"
+			param
+				target
+					string
+					哪一台钢琴；格式：A或B
+				time
+					start
+						int
+						开始时间的unix时间戳
+						会取与之最近的一个60的倍数，即化为分钟数
+					end
+						int
+						结束时间的unix时间戳
+						会取与之最近的一个60的倍数，即化为分钟数
+				contact
+					string
+					联系方式
+		返回字段
+			serviceId
+				int
+				新建的预约的编号
+	取消预约
+		方法：post
+		URL: program/service.php
+		POST参数
+			type: "cancelOrder"
+			param
+				serviceId
+					int
+					要取消的预约的编号
+			返回字段
+				(null)
+	

@@ -1,0 +1,32 @@
+<!-- this file has not been finalized, and is subject to change -->
+<strategy priority="1" jump="deny" message="demo message" index="x-1">
+	<limit>
+		<data src="db">
+			<table value="service"/>
+			<field value="id"/>
+		</data>
+		<condition>
+			<or>
+				<range>
+					<max value="50" equal="equal"/>
+					<min value="0"/>
+				</range>
+				<range>
+					<max value="200" equal="equal"/> 
+					<min value="150"/>
+				</range>
+			</or>
+		</condition>
+	</limit>
+	<limit>
+		<data src="var">
+			<name value="_USER_"/>
+		</data>
+		<condition>
+			<set>
+				<ele value="admin" type="str"/>
+				<ele value="root" type="str"/>
+			</set>
+		</condition>
+	</limit>
+</strategy>

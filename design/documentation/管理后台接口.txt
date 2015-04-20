@@ -1,0 +1,185 @@
+管理后台-前端接口
+
+管理员登陆
+	方法：post
+	URL: program/admin.php
+	POST参数
+		type: "login"
+		param
+			username
+				string
+				管理员用户名
+			password
+				string
+				管理员密码
+	返回字段
+		(null)
+管理员注销
+	方法：post
+	URL: program/admin.php
+	POST参数
+		type: "logout"
+		param: null
+	返回字段
+		(null)
+获得当前钢琴使用情况记录
+	方法：post
+	URL: program/stats.php
+	POST参数
+		type: "getStats"
+		param
+			length
+				int
+				要获得数据的天数
+	返回字段
+		data
+			array
+			元素为统计信息的对象，包含
+				date
+					string
+					统计数据中的某一天；格式：MM-DD
+				usedHours
+					float
+					钢琴使用的小时数
+				usedCount
+					int
+					钢琴使用的次数
+查看当前开放的预约情况
+	方法：post
+	URL: program/service.php
+	POST参数
+		type: "getOpen"
+		param
+			withServiceId
+				bool
+				是否返回预约编号，用于管理员操作，此处调用应设为true
+		返回字段
+			data
+				array
+				元素为预约信息的对象，包含
+					serviceId
+						int
+						预约编号
+					target
+						string
+						哪一台钢琴；格式：A或B
+					time
+						start
+							string
+							开始时间；格式：unix时间戳
+						end
+							string
+							结束时间；格式：unix时间戳
+					username
+						string
+						预约人姓名
+					uid
+						int
+						预约人学号
+检索满足一定条件的预约记录
+	方法：post
+	URL: program/service.php
+	POST参数
+		type: "search"
+		param
+			scopeStart
+				int
+				指定记录的开始时间不早于该值；unix时间戳，必须的参数
+			[scopeEnd]
+				int
+				指定记录的开始时间不晚于该值；unix时间戳
+			[uid]
+				int
+				用户学号
+			[username]
+				string
+				用户姓名
+			[contact]
+				string
+				联系方式
+			[noLaterThan]
+				int
+				开始时间不晚于指定的一个unix时间戳
+			[noEarlierThan]
+				int
+				开始时间不早于指定的一个unix时间戳
+			[noLongerThan]
+				int
+				持续时间不长于指定值
+			[noShorterThan]
+				int
+				持续时间不短于指定值
+			[target]
+				string
+				针对哪一台钢琴；A或B
+			[status]
+				int
+				指定预约的状态；可以用位或运算同时指定多个状态，例如7表示421三种状态
+		返回字段
+			data
+				array
+				元素为预约信息的对象，包含
+					serviceId
+						int
+						预约编号
+					target
+						string
+						哪一台钢琴；格式：A或B
+					time
+						start
+							string
+							开始时间；格式：unix时间戳
+						end
+							string
+							结束时间；格式：unix时间戳
+					username
+						string
+						预约人姓名
+					uid
+						int
+						预约人学号
+					status
+						int
+						预约记录状态；见预约记录状态定义
+新建预约
+	方法：post
+	URL: program/service.php
+	POST参数
+		type: "adminOrder"
+		param
+			target
+				string
+				哪一台钢琴；格式：A或B
+			time
+				start
+					int
+					开始时间的unix时间戳
+					会取与之最近的一个60的倍数，即化为分钟数
+				end
+					int
+					结束时间的unix时间戳
+					会取与之最近的一个60的倍数，即化为分钟数
+			uid
+				int
+				用户学号
+			username
+				string
+				用户姓名
+			contact
+				string
+				联系方式
+	返回字段
+		serviceId
+			int
+			新建的预约的编号
+取消预约
+	方法：post
+	URL: program/service.php
+	POST参数
+		type: "adminCancel"
+		param
+			serviceId
+				int
+				要取消的预约的编号
+		返回字段
+			(null)
