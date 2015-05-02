@@ -1,0 +1,133 @@
+[用户交互层接口设计]
+	用户交互层主要负责接受前端发送的指令和参数，并调用服务层进行处理
+	如果操作成功，获得服务层返回的操作结果；否则，捕获服务层抛出的异常
+	最后，根据需要包装成功或失败的返回值，发回给用户
+	
+	用户层是直接接受客户端请求的，所有接口应保持稳定，应该与交互的具体内容无关
+	客户端请求可以看做键值对；服务端的回复一般包括操作结果的指示（操作成功或者给出错误代码和错误详情），以及可能存在的具体内容
+	
+	用户交互层的工作流程
+		1.若系统内存在多项不同的服务，根据客户端指定的服务类型，加载相应的服务层(serviceSelect)；
+		2.将命令和参数通过服务层的调用接口传递给服务层(exec)；
+		3.等待服务层返回操作结果后，将结果封装成数据包返回给客户端；或者捕获服务层抛出的错误信息，封装成数据包返回(publish)；
+		
+	类成员
+	常量
+		异常编号等的定义
+	属性
+		private object $serviceIns; 
+			服务层的工作实例;
+		private int $expCode
+			捕获的上层的异常代码
+		private string $expMsg
+			捕获的上层的异常消息
+		private array $extraHeader
+			由服务层设置的自定义标头
+		private mixed $content
+			由服务层返回的内容
+		
+	方法
+		serviceSelect(string $serviceName, string $variant = 'default')
+			根据客户端指定的服务类型，加载相应的服务层；创建这个服务层的实例，并使本类的指针指向它；
+			参数
+				string $serviceName
+					服务名称
+				[string $variant]
+					同名服务的变种，与服务名称一同决定某项具体的服务，用于服务的新旧版本之类的区分
+			code example:
+				public function serviceSelect($serviceName, $variant = 'default'){
+					switch($serviceName){
+						case 'finance':
+							include_once "Service/Finance/Finance.service.class.php";
+							$_service = new FinanceService();
+							break;
+						case 'appointment':
+							if($variant === 'default'){
+								include_once "Service/Appointment/Appointment.service.class.php";
+								$_service = new AppointmentService();
+							}else if ($variant === "1.1"){
+								include_once "Service/Appointment-1.1/Appointment.service.class.php";
+								$_service = new AppointmentService();
+							}
+							break;
+						...
+						
+						default:
+							triggerSelfExp(CommExp::ErrBadServiceName);
+					}
+					$this->serviceIns = $_service;
+				}
+		
+		setExp(int $code, string $msg)
+			设置捕获的异常
+			code example:
+				private function setExp($code, $msg){
+					$this->expCode = $code;
+					$this->expMsg = $msg;
+				}
+				
+		triggerSelfExp(int $code, string $msg = '')
+			设置并触发本类的异常；由于本层直接面对客户，没有上层来捕获本层的异常，故只能自己处理自己的异常
+			参数
+				int $expCode
+					异常编号；应该是本类的一个异常常量
+				string $expMsg
+					异常消息
+			code example:
+				private function triggerSelfExp(int $code, string $msg = ''){
+					$this->setExp($code, $msg);
+					$this->publish();
+					die(1); //重要！阻止程序继续进行
+				}
+		
+		publish(string $type = 'json', string $header = '')
+			向web服务器送出最终的应答；这是整个工作流程中能够和应该产生实际输出的唯一一个方法
+			参数
+				string $type
+					指定应该输出的应答类型。默认的类型是json。
+						由于有些应用的输出是二进制数据，或者需要使用输出缓冲，则需要指定这个参数，来适应需要
+				string $header
+				指定输出时的HTTP标头，一般是配合特殊输出的应用使用，如输出是个文件，需要让用户下载这个文件
+			code example:
+				public function publish($type = 'json', $header = ''){
+					if($header !== ''){
+						header($header);
+					}
+					if($type === "json"){
+						$_header = $this->extraHeader;
+						array_merge($_header, array("expCode" => $this->expCode, "expMsg" => $this->expMsg));
+						echo json_encode(array("header" => $_header, "body" => $this->content));
+					}else if($type === 'bin'){
+						header("Content-Type: application/octet-stream");
+						//other code goes here
+					}else if($type === 'download'){
+						header("Content-Type: application/force-download");
+						header("Content-Dipostion: attchment;filename=$filename");
+						//other code goes here
+					}
+					
+				}
+		exec(string $cmd, array $params = [])
+			执行服务层操作
+			参数
+				string $cmd
+					用户指定的命令
+				array $params
+					由用户提交的参数数组；默认为空
+			code example:
+				public function exec($cmd, $params = []){
+					try{
+						$this->serviceIns->call($cmd, $params);
+						$_ret = $this->serviceIns->return();
+						if(is_null($_ret)){
+							$this->content = $_ret;
+						}
+						$_eh = $this->serviceIns->getExtraHeader();
+						if(count($_eh) > 0){
+							$this->extraHeader = $_eh;
+						}
+					}catch(ServiceExp $e){
+						//handles exception here
+						setExp($e->getCode(), $e->getMessage());
+					}
+				}
