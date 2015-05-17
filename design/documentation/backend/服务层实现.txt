@@ -1,28 +1,26 @@
 [服务层接口设计]
-	服务层对外定义了一套具体的系统提供哪些服务，并提供调用相应服务的接口。
-	对内请求策略层给出操作允许，并调用数据库层对数据库进行操作
+	服务层对外提供调用各种服务的接口，对内调用各种具体的服务提供者，执行具体的操作
+	服务提供者具体定义了服务概念，对外（用户）提供可供调用的命令，对内可以请求策略层给出操作允许，并调用数据库层对数据库进行操作
 	
 	系统每个组件都相对独立（意味着其他层次的修改只需要在本层次进行很小的修改就可以使整个系统运行），
 	因此服务层不应该处理诸如策略、数据库操作之类的工作。
 	
-	由于具体的服务内容受系统需求约束，因此这份文档描述独立于具体服务的部分。
+	这份文档描述对外的服务层接口。服务提供者的接口另作定义。
 	
-	[对用户交互层接口]
+	类成员
+	属性
+		private object $serviceIns
+			进行具体服务操作的服务提供者实例
+	方法
 		call
+			#update:直接将命令和参数传递给服务提供者
 			服务层受理交互层指令的接口，交互层不能明确服务层提供了哪些功能的情况下，也就无法根据用户指令调用服务层相应的功能
 			因此将解释指令的责任交给服务层来解决，交互层提交指令字符串，该接口调用服务层内相应的操作，相当于一个子层
 			这样交互层不会接触到具体的操作指令，只需要将操作命令和操作参数传递给call方法的相应的局参就可以了
 			如果服务层发生服务升级等变更，只需修改服务层中的call方法，用户交互层完全不需要更改
 			code example:
 				public function call(string $cmd, array $params = []){
-					switch($cmd){
-						case 'cancel':
-							$this->cancel();
-							break;
-						case 'submit':
-							$this->submit($params['userId'], $params['userGrp']);
-							break;
-					}
+					$this->workIns->call($cmd, $params);
 				}
 				
 			caller:
@@ -35,3 +33,34 @@
 			
 		return
 			向用户交互层返回服务层的操作结果数据，参见用户交互层接口exec
+		
+		use(string $serviceName, [string $variant = 'default'])
+			加载具体的服务层；创建这个服务层的实例，并使本类的指针指向它；
+			参数
+				string $serviceName
+					服务名称
+				[string $variant]
+					同名服务的变种，与服务名称一同决定某项具体的服务，用于服务的新旧版本之类的区分
+			code example:
+				public function use($serviceName, $variant = 'default'){
+					switch($serviceName){
+						case 'finance':
+							include_once "Service/Finance/Finance.service.class.php";
+							$_service = new FinanceService();
+							break;
+						case 'appointment':
+							if($variant === 'default'){
+								include_once "Service/Appointment/Appointment.service.class.php";
+								$_service = new AppointmentService();
+							}else if ($variant === "1.1"){
+								include_once "Service/Appointment-1.1/Appointment.service.class.php";
+								$_service = new AppointmentService();
+							}
+							break;
+						...
+						
+						default:
+							throw new ServiceExp(ServiceExp::ErrUnknownServiceName);
+					}
+					$this->serviceIns = $_service;
+				}

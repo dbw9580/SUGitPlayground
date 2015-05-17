@@ -1,0 +1,17 @@
+[服务提供者定义]
+服务提供者由服务层加载和调用
+
+方法
+	call
+		受理交互层指令
+		code example:
+			public function call(string $cmd, array $params = []){
+				switch($cmd){
+					case 'cancel':
+						$this->cancel();
+						break;
+					case 'submit':
+						$this->submit($params['userId'], $params['userGrp']);
+						break;
+				}
+			}
